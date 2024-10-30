@@ -6,11 +6,8 @@ from gspread_formatting import *
 from dotenv import dotenv_values
 
 # json 파일이 위치한 경로를 값으로 줘야 합니다.
-def Gsheet_param(args):
+def Gsheet_param(cfg):
     # env 파일 불러오기
-
-    
-
     env_path = "/data/ephemeral/home/env/.env"
     env = dotenv_values(env_path)
 
@@ -26,23 +23,11 @@ def Gsheet_param(args):
     # User 명
     param_dict['user'] = os.path.abspath(__file__).split("/")[4]
 
-    # num workers
-    param_dict['num workers'] = args.num_workers
-
-    # image size
-    param_dict['image size'] = args.image_size
-    
-    # input size
-    param_dict['input size'] = args.input_size
-
-    # batch size
-    param_dict['batch size'] = args.batch_size
-
-    # learning rate
-    param_dict['learning rate'] = args.learning_rate
-
-    # max epoch
-    param_dict['max epoch'] = args.max_epoch
+    for idx, (key, value) in enumerate(cfg.items()):
+        if idx < 3:
+            pass
+        else :
+            param_dict[key] = value
 
 
     # sheet에 추가하기 위해서 값들을 list로 저장
@@ -53,10 +38,10 @@ def Gsheet_param(args):
     
     try:
         # 워크시트가 있는지 확인
-        worksheet = doc.worksheet(param_dict['user'])
+        worksheet = doc.worksheet(cfg.experiment_name)
     except WorksheetNotFound:
         # 워크시트가 없으면 새로 생성
-        worksheet = doc.add_worksheet(title=param_dict['user'], rows="1000", cols="30")
+        worksheet = doc.add_worksheet(title=cfg.experiment_name, rows="1000", cols="30")
         # Col 명 추가
         worksheet.append_rows([cols])
 
@@ -79,10 +64,10 @@ def Gsheet_param(args):
             width = max(len(header)*10+20,80)
             set_column_width(worksheet, column_letter, width)
 
-        print(f"'{param_dict['user']}' 워크시트가 생성되었습니다.")
+        print(f"'{cfg.experiment_name}' 워크시트가 생성되었습니다.")
 
     # 실험 인자를 작성한 worksheet
-    worksheet = doc.worksheet(param_dict['user'])
+    worksheet = doc.worksheet(cfg.experiment_name)
 
     # 실험 인자 worksheet에 추가
     worksheet.append_rows([params])
