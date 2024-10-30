@@ -3,7 +3,7 @@ import os.path as osp
 import time
 import math
 from datetime import timedelta
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from omegaconf import OmegaConf
 
 import torch
@@ -78,6 +78,12 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
 
 
 def main(args):
+    args_dict = OmegaConf.to_container(args, resolve=True)
+    training_args = {
+        k: v for k, v in args_dict.items() 
+        if k in do_training.__code__.co_varnames
+    }
+    args = Namespace(**training_args)
     do_training(**args.__dict__)
 
 if __name__ == '__main__':
@@ -88,6 +94,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     with open(args.config, 'r') as f:
         cfg = OmegaConf.load(f)
-    
     main(cfg)
     Gsheet_param(cfg)
