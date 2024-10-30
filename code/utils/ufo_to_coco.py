@@ -59,7 +59,7 @@ def convert_ufo_to_coco(ufo_dir, img_dir, output_path):
             bbox = [float(x1), float(y1), float(x2-x1), float(y2-y1)]
             
             # Segmentation 포인트
-            segmentation = [[float(p[0]) for p in points] + [float(p[1]) for p in points]]
+            segmentation = [[float(p[0]), float(p[1])] for p in points]
             
             # 면적 계산
             area = float((x2-x1) * (y2-y1))
