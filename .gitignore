@@ -1,2 +1,26 @@
 # pths
 pths/
+
+# py file
+code/model.py
+code/loss.py
+code/east_dataset.py
+code/detect.py
+
+# python cache 제외
+__pycache__
+*.pyc
+*.pyd
+
+# editor settings
+.idea
+.vscode
+.DS_Store
+
+# 모델 checkpoint 제외
+*.pt
+*.pkl
+*.pth
+
+# wandb
+wandb/
