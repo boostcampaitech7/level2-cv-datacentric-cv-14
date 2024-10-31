@@ -4,8 +4,8 @@ device: cuda
 # only for train #
 #------------------------------------------------------------#
 # save parameters for Gsheet #
-experiment_name: UFO2COCO
-experiment_detail: COCO Segmentation point 사용
+experiment_name: outlier_remove
+experiment_detail: baseline code + remone
 image_size: 2048
 input_size: 1024
 

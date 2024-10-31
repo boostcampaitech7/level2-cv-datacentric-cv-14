@@ -385,6 +385,13 @@ class SceneTextDataset(Dataset):
         vertices, labels = [], []
         for word_info in self.anno['images'][image_fname]['words'].values():
             num_pts = np.array(word_info['points']).shape[0]
+
+            transcription = word_info['transcription']
+    
+            # 절취선 제거
+            if transcription in [""]:
+                continue
+
             if num_pts > 4:
                 continue
             vertices.append(np.array(word_info['points']).flatten())
