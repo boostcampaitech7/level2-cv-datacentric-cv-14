@@ -24,3 +24,12 @@ __pycache__
 
 # wandb
 wandb/
+
+# .jpg
+*.jpg
+
+# results
+results/
+
+# split_data
+split_data/
