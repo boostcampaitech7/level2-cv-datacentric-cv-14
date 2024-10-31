@@ -3,7 +3,8 @@ import os.path as osp
 import time
 import math
 from datetime import timedelta
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
+from omegaconf import OmegaConf
 
 import torch
 from torch import cuda
@@ -14,33 +15,8 @@ from tqdm import tqdm
 from east_dataset import EASTDataset
 from dataset import SceneTextDataset
 from model import EAST
+from utils.Gsheet import Gsheet_param
 
-
-def parse_args():
-    parser = ArgumentParser()
-
-    # Conventional args
-    parser.add_argument('--data_dir', type=str,
-                        default=os.environ.get('SM_CHANNEL_TRAIN', 'data'))
-    parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR',
-                                                                        'trained_models'))
-
-    parser.add_argument('--device', default='cuda' if cuda.is_available() else 'cpu')
-    parser.add_argument('--num_workers', type=int, default=8)
-
-    parser.add_argument('--image_size', type=int, default=2048)
-    parser.add_argument('--input_size', type=int, default=1024)
-    parser.add_argument('--batch_size', type=int, default=8)
-    parser.add_argument('--learning_rate', type=float, default=1e-3)
-    parser.add_argument('--max_epoch', type=int, default=150)
-    parser.add_argument('--save_interval', type=int, default=5)
-    
-    args = parser.parse_args()
-
-    if args.input_size % 32 != 0:
-        raise ValueError('`input_size` must be a multiple of 32')
-
-    return args
 
 
 def do_training(data_dir, model_dir, device, image_size, input_size, num_workers, batch_size,
@@ -102,8 +78,21 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
 
 
 def main(args):
+    args_dict = OmegaConf.to_container(args, resolve=True)
+    training_args = {
+        k: v for k, v in args_dict.items() 
+        if k in do_training.__code__.co_varnames
+    }
+    args = Namespace(**training_args)
     do_training(**args.__dict__)
 
 if __name__ == '__main__':
-    args = parse_args()
-    main(args)
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--config", type=str, default="configs/base_train.yaml"
+    )
+    args = parser.parse_args()
+    with open(args.config, 'r') as f:
+        cfg = OmegaConf.load(f)
+    main(cfg)
+    Gsheet_param(cfg)
