@@ -342,7 +342,8 @@ class SceneTextDataset(Dataset):
                  ignore_under_threshold=10,
                  drop_under_threshold=1,
                  color_jitter=True,
-                 normalize=True):
+                 normalize=True,
+                 validation =False):
         self._lang_list = ['chinese', 'japanese', 'thai', 'vietnamese']
         self.root_dir = root_dir
         self.split = split
@@ -355,6 +356,7 @@ class SceneTextDataset(Dataset):
 
         self.anno = total_anno
         self.image_fnames = sorted(self.anno['images'].keys())
+        self.validation = validation
 
         self.image_size, self.crop_size = image_size, crop_size
         self.color_jitter, self.normalize = color_jitter, normalize
@@ -374,7 +376,7 @@ class SceneTextDataset(Dataset):
             lang = 'vietnamese'
         else:
             raise ValueError
-        return osp.join(self.root_dir, f'{lang}_receipt', 'img', self.split)
+        return osp.join(self.root_dir, f'{lang}_receipt', 'img', 'train')
     def __len__(self):
         return len(self.image_fnames)
 
@@ -399,21 +401,39 @@ class SceneTextDataset(Dataset):
         )
 
         image = Image.open(image_fpath)
-        image, vertices = resize_img(image, vertices, self.image_size)
-        image, vertices = adjust_height(image, vertices)
-        image, vertices = rotate_img(image, vertices)
-        image, vertices = crop_img(image, vertices, labels, self.crop_size)
+        
+        # Validation : 필수 transform만 적용 
+        if self.validation :
+            image, vertices = resize_img(image, vertices, self.image_size)
+            image, vertices = adjust_height(image, vertices)
+            image, vertices = crop_img(image, vertices, labels, self.crop_size)
 
-        if image.mode != 'RGB':
-            image = image.convert('RGB')
-        image = np.array(image)
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            image = np.array(image)
 
-        funcs = []
-        if self.color_jitter:
-            funcs.append(A.ColorJitter())
-        if self.normalize:
-            funcs.append(A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)))
-        transform = A.Compose(funcs)
+            funcs = []
+            if self.normalize:
+                funcs.append(A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)))
+            transform = A.Compose(funcs)
+        
+        # Train : Augmentation 적용 
+        else :
+            image, vertices = resize_img(image, vertices, self.image_size)
+            image, vertices = adjust_height(image, vertices)
+            image, vertices = rotate_img(image, vertices)
+            image, vertices = crop_img(image, vertices, labels, self.crop_size)
+
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            image = np.array(image)
+
+            funcs = []
+            if self.color_jitter:
+                funcs.append(A.ColorJitter())
+            if self.normalize:
+                funcs.append(A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)))
+            transform = A.Compose(funcs)
 
         image = transform(image=image)['image']
         word_bboxes = np.reshape(vertices, (-1, 4, 2))
