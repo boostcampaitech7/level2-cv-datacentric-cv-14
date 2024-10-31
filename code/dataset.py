@@ -343,28 +343,36 @@ class SceneTextDataset(Dataset):
                  drop_under_threshold=1,
                  color_jitter=True,
                  normalize=True,
-                 validation =False):
+                 validation =False): # validation 파라미터 추가 
+        # 지원하는 언어 목록 및 기본 설정 초기화 
         self._lang_list = ['chinese', 'japanese', 'thai', 'vietnamese']
         self.root_dir = root_dir
         self.split = split
         total_anno = dict(images=dict())
+        
+        # 각 언어별로 데이터 로드하기 
         for nation in self._lang_list:
             with open(osp.join(root_dir, '{}_receipt/ufo/{}.json'.format(nation, split)), 'r', encoding='utf-8') as f:
                 anno = json.load(f)
+            # 모든 언어 데이터를 합쳐 하나로 저장 
             for im in anno['images']:
                 total_anno['images'][im] = anno['images'][im]
 
+        # 전체 데이터와 이미지 파일 이름 저장 
         self.anno = total_anno
         self.image_fnames = sorted(self.anno['images'].keys())
-        self.validation = validation
-
+        self.validation = validation # validation 여부 설정 
+        
+        # 이미지 크기, crop크기, 색상 변화 및 정규화 설정 
         self.image_size, self.crop_size = image_size, crop_size
         self.color_jitter, self.normalize = color_jitter, normalize
 
+        # 작은 영역 필터링을 위한 기준값 
         self.drop_under_threshold = drop_under_threshold
         self.ignore_under_threshold = ignore_under_threshold
 
     def _infer_dir(self, fname):
+        # 파일 이름을 통해 언어 경로를 추정하여 반환 
         lang_indicator = fname.split('.')[1]
         if lang_indicator == 'zh':
             lang = 'chinese'
@@ -378,21 +386,24 @@ class SceneTextDataset(Dataset):
             raise ValueError
         return osp.join(self.root_dir, f'{lang}_receipt', 'img', 'train')
     def __len__(self):
+        # 전체 이미지 파일 수 반환 
         return len(self.image_fnames)
 
     def __getitem__(self, idx):
+        # 1. 이미지 파일 경로와 이름 가져오기 
         image_fname = self.image_fnames[idx]
         image_fpath = osp.join(self._infer_dir(image_fname), image_fname)
-
+        
+        # 2. 텍스트 영역의 점 좌표(vertices)와 레이블(유효 여부) 수집
         vertices, labels = [], []
         for word_info in self.anno['images'][image_fname]['words'].values():
             num_pts = np.array(word_info['points']).shape[0]
             if num_pts > 4:
                 continue
             vertices.append(np.array(word_info['points']).flatten())
-            labels.append(1)
+            labels.append(1) # 1은 유효 텍스트로 표시함
         vertices, labels = np.array(vertices, dtype=np.float32), np.array(labels, dtype=np.int64)
-
+        # 3. 지정한 기준값을 통해 텍스트 영역 필터링 
         vertices, labels = filter_vertices(
             vertices,
             labels,
@@ -400,6 +411,7 @@ class SceneTextDataset(Dataset):
             drop_under=self.drop_under_threshold
         )
 
+        # 4. 이미지 파일 열기 
         image = Image.open(image_fpath)
         
         # Validation : 필수 transform만 적용 
@@ -412,6 +424,7 @@ class SceneTextDataset(Dataset):
                 image = image.convert('RGB')
             image = np.array(image)
 
+            # Validation에는 Normalize만 적용 
             funcs = []
             if self.normalize:
                 funcs.append(A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)))
@@ -428,6 +441,7 @@ class SceneTextDataset(Dataset):
                 image = image.convert('RGB')
             image = np.array(image)
 
+            # 색상 변화 및 Normalize 적용 
             funcs = []
             if self.color_jitter:
                 funcs.append(A.ColorJitter())
@@ -435,6 +449,7 @@ class SceneTextDataset(Dataset):
                 funcs.append(A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)))
             transform = A.Compose(funcs)
 
+        # 이미지 변환 적용 
         image = transform(image=image)['image']
         word_bboxes = np.reshape(vertices, (-1, 4, 2))
         roi_mask = generate_roi_mask(image, vertices, labels)
