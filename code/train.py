@@ -2,6 +2,7 @@ import os
 import os.path as osp
 import time
 import math
+import wandb
 from datetime import timedelta
 from argparse import ArgumentParser, Namespace
 from omegaconf import OmegaConf
@@ -16,6 +17,7 @@ from east_dataset import EASTDataset
 from dataset import SceneTextDataset
 from model import EAST
 from utils.Gsheet import Gsheet_param
+from utils.wandb import set_wandb
 
 
 
@@ -62,6 +64,13 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
                     'Cls loss': extra_info['cls_loss'], 'Angle loss': extra_info['angle_loss'],
                     'IoU loss': extra_info['iou_loss']
                 }
+                wandb.log({
+                    "train_loss": loss,
+                    "train_cls_loss": val_dict['Cls loss'],
+                    "train_angle_loss": val_dict['Angle loss'],
+                    "train_IoU_loss": val_dict['Cls loss'],
+                    'Epoch': epoch
+                }, step=epoch+1)
                 pbar.set_postfix(val_dict)
 
         scheduler.step()
@@ -79,6 +88,7 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
 
 def main(args):
     args_dict = OmegaConf.to_container(args, resolve=True)
+    set_wandb(args.experiment_name, args.experiment_detail, args)
     training_args = {
         k: v for k, v in args_dict.items() 
         if k in do_training.__code__.co_varnames
