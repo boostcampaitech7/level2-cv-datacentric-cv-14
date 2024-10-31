@@ -12,6 +12,7 @@ input_size: 1024
 batch_size: 8
 num_workers: 8
 
+seed : 42
 learning_rate: 1e-3
-max_epoch: 1
+max_epoch: 150
 save_interval: 5
