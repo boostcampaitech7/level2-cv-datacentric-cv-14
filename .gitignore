@@ -33,3 +33,12 @@ results/
 
 # split_data
 split_data/
+
+# .out
+*.out
+
+# Auto_SR
+Auto_SR/
+
+# .sh
+*.sh
