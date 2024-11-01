@@ -494,7 +494,8 @@ class CustomDataset(Dataset):
                 self.transform = []
 
         # 기본 설정과 추가 augmentation 더해서 pipeline 구성
-        self.transform = A.Compose(transform + self.transform)
+        self.transform = A.Compose(transform + self.transform,
+                                   keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
 
     def _infer_dir(self, fname):
         # 파일 이름을 통해 언어 경로를 추정하여 반환 
@@ -546,7 +547,9 @@ class CustomDataset(Dataset):
         image = np.array(image)
 
         # 이미지 변환 적용 
-        image = self.transform(image=image)['image']
+        image, vertices = self.transform(image=image, 
+                               keypoints=[tuple(point) for point in vertices.reshape(-1, 2)]).values()
+
         word_bboxes = np.reshape(vertices, (-1, 4, 2))
         roi_mask = generate_roi_mask(image, vertices, labels)
 
