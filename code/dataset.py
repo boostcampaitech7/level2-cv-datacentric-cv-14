@@ -461,7 +461,11 @@ class CustomDataset(Dataset):
                  split='train',
                  ignore_under_threshold=10,
                  drop_under_threshold=1,
-                 transform=[]):
+                 transform=[
+                     A.LongestMaxSize(1024),
+                     A.PadIfNeeded(1024, border_mode=1),
+                     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
+                 ]):
         
         # 지원하는 언어 목록 및 기본 설정 초기화 
         self._lang_list = ['chinese', 'japanese', 'thai', 'vietnamese']
@@ -485,16 +489,8 @@ class CustomDataset(Dataset):
         self.ignore_under_threshold = ignore_under_threshold
 
         # Transform 설정
-        # 기본 설정
-        self.transform = [A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))]
-        
-        # 있다면 제거
-        for aug in transform:
-            if isinstance(aug, A.Normalize):
-                self.transform = []
-
-        # 기본 설정과 추가 augmentation 더해서 pipeline 구성
-        self.transform = A.Compose(transform + self.transform,
+        # 입력 augmentation으로 pipeline 구성
+        self.transform = A.Compose(transform,
                                    keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
 
     def _infer_dir(self, fname):
