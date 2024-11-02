@@ -24,7 +24,7 @@ import albumentations as A
 
 
 def do_training(data_dir, model_dir, device, image_size, input_size, num_workers, batch_size,
-                learning_rate, max_epoch, save_interval, validation, train_ann, val_ann, custom_transform):
+                learning_rate, max_epoch, save_interval, validation, train_ann, val_ann, custom_transform=[]):
     
     # 1. 훈련 데이터셋 로드 및 전처리 
     train_dataset = SceneTextDataset(
@@ -92,6 +92,11 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
     
     # 4. 훈련 단계 
     model.train()
+
+    # model 저장 path
+    before_path = ""
+    save_path = ""
+
     for epoch in range(1, max_epoch + 1):
         train_loss, valid_loss = 0, 0
         train_start = time.time()
@@ -168,17 +173,14 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
                 val_log_dict["Valid Cls loss"] = valid_cls_loss_total / valid_num_batches
                 val_log_dict["Valid Angle loss"] = valid_angle_loss_total / valid_num_batches
                 val_log_dict["Valid IoU loss"] = valid_iou_loss_total / valid_num_batches
-                    
-                if not osp.exists(model_dir):
-                    os.makedirs(model_dir)
                 
                 # Best Model 저장 로직( 손실 값이 개선된 경우에만 저장함)
                 mean_val_loss = valid_loss / valid_num_batches
                 if best_val_loss > mean_val_loss:
                     best_val_loss = mean_val_loss
                     best_val_loss_epoch = epoch
-                    ckpt_fpath = osp.join(model_dir, f"best_epoch_{best_val_loss_epoch}.pth")
-                    torch.save(model.state_dict(), ckpt_fpath)
+                    
+                    save_path = osp.join(model_dir, f"best_epoch_{best_val_loss_epoch}.pth")
                     counter = 0
                 else:
                     counter += 1
@@ -195,11 +197,8 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
 
         # Validation == False 
         else:
-            if (epoch) >= 100 and (epoch) % save_interval == 0:
-                if not osp.exists(model_dir):
-                    os.makedirs(model_dir)
-                ckpt_fpath = osp.join(model_dir, f"epoch_{epoch}.pth")
-                torch.save(model.state_dict(), ckpt_fpath)
+            if epoch >= 100 and epoch % save_interval == 0:
+                save_path = osp.join(model_dir, f"epoch_{epoch}.pth")
 
         # wandb에 train, val logging
         wandb.log({
@@ -208,6 +207,18 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
         }, step=epoch)
 
         print("")
+
+        # 학습 모델 저장 폴더 생성
+        os.makedirs(model_dir, exist_ok=True)
+
+        if save_path != "":
+            if validation and osp.exists(before_path):
+                os.remove(before_path)
+
+            torch.save(model.state_dict(), save_path)
+            before_path = save_path[:]
+            save_path = ""
+
         # 학습률 스케줄러 업데이트 
         scheduler.step()    
 
