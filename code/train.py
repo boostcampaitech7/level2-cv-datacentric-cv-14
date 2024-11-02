@@ -15,15 +15,16 @@ from torch.optim import lr_scheduler
 from tqdm import tqdm
 
 from east_dataset import EASTDataset
-from dataset import SceneTextDataset
+from dataset import SceneTextDataset, CustomDataset
 from model import EAST
 from utils.Gsheet import Gsheet_param
 from utils.wandb import set_wandb
+import albumentations as A
 
 
 
 def do_training(data_dir, model_dir, device, image_size, input_size, num_workers, batch_size,
-                learning_rate, max_epoch, save_interval, validation, train_ann, val_ann):
+                learning_rate, max_epoch, save_interval, validation, train_ann, val_ann, custom_transform):
     
     # 1. 훈련 데이터셋 로드 및 전처리 
     train_dataset = SceneTextDataset(
@@ -33,6 +34,13 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
         crop_size=input_size,
         validation=False
     )
+
+    # custom dataset 사용시 SceneTextDataset 대신 사용
+    # train_dataset = CustomDataset(
+    #     data_dir,
+    #     split=train_ann,
+    #     transform=custom_transform
+    # )
     
     train_dataset = EASTDataset(train_dataset)
     train_num_batches = math.ceil(len(train_dataset) / batch_size)
@@ -53,6 +61,12 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
             crop_size=input_size,
             validation=True
         )
+
+        # custom dataset 사용시 SceneTextDataset 대신 사용
+        # valid_dataset = CustomDataset(
+        #     data_dir,
+        #     split=val_ann
+        # )
 
         valid_dataset = EASTDataset(valid_dataset)
         valid_num_batches = math.ceil(len(valid_dataset) / batch_size)
@@ -205,6 +219,11 @@ def main(args):
         k: v for k, v in args_dict.items() 
         if k in do_training.__code__.co_varnames
     }
+
+    # custom dataset 사용시 주석 해제
+    # training_args['custom_transform'] = [getattr(A, aug)(**params) 
+    #                                      for aug, params in args_dict['transform'].items()]
+
     args = Namespace(**training_args)
     do_training(**args.__dict__)
 
