@@ -28,6 +28,9 @@ wandb/
 # .jpg
 *.jpg
 
+# .png
+*.png
+
 # results
 results/
 
