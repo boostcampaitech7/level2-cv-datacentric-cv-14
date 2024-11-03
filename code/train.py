@@ -93,7 +93,7 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
      
     # Early stopping 설정 변수 
     counter = 0
-    best_val_loss = np.inf
+    best_f1_score = np.inf
     
     # 4. 훈련 단계 
     model.train()
@@ -142,8 +142,9 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
         train_log_dict['Learning Rate'] = scheduler.get_last_lr()[0]
 
         train_end = time.time() - train_start
+        
         print("Train Mean loss: {:.4f} || Elapsed time: {} || ETA: {}".format(
-            train_loss / train_num_batches,
+            train_log_dict['Train Mean Loss'],
             timedelta(seconds=train_end),
             timedelta(seconds=train_end*(max_epoch - epoch))))
             
@@ -178,25 +179,23 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
                 val_log_dict["Valid F1 Score"] = valid_f1_score / valid_num_batches
                 
                 # Best Model 저장 로직( 손실 값이 개선된 경우에만 저장함)
-                mean_val_loss = valid_loss / valid_num_batches
-                if best_val_loss > mean_val_loss:
-                    best_val_loss = mean_val_loss
-                    best_val_loss_epoch = epoch
+                if best_f1_score > val_log_dict['Valid F1 Score']:
+                    best_f1_score = val_log_dict['Valid F1 Score']
+                    best_f1_score_epoch = epoch
                     
-                    save_path = osp.join(model_dir, f"best_epoch_{best_val_loss_epoch}.pth")
+                    save_path = osp.join(model_dir, f"best_epoch_{best_f1_score_epoch}.pth")
                     counter = 0
                 else:
                     counter += 1
                     print(f"Not Val Update.. Counter : {counter}")
                     
             valid_end = time.time() - valid_start
-            print("Valid Mean loss: {:.4f} || Elapsed time: {}".format(
-                mean_val_loss,
-                timedelta(seconds=valid_end)))
             
-            print("Best Validation Loss: {:.4f} at Epoch {}".format(
-                best_val_loss,
-                best_val_loss_epoch))
+            print(f"{'Valid Mean F1 Score':<23}: {val_log_dict['Valid F1 Score']:>8.4f}\n"\
+                 f"{'Valid Mean Recall':<23}: {val_log_dict['Valid Recall']:>8.4f}\n"\
+                 f"{'Valid Mean Presicision':<23}: {val_log_dict['Valid Precision']:>8.4f} || Elapsed time: {timedelta(seconds=valid_end)}")
+            
+            print(f"Best F1 Score : {best_f1_score:.4f} at Epoch {best_f1_score_epoch}")
 
         # Validation == False 
         else:
