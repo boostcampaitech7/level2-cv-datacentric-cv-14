@@ -385,6 +385,7 @@ class SceneTextDataset(Dataset):
         else:
             raise ValueError
         return osp.join(self.root_dir, f'{lang}_receipt', 'img', 'train')
+    
     def __len__(self):
         # 전체 이미지 파일 수 반환 
         return len(self.image_fnames)
@@ -581,10 +582,32 @@ class CustomValidationDataset(Dataset):
                 gt_bboxes[img].append(self.anno['images'][img]['words'][idx]['points'])
 
         self.gt_bboxes = gt_bboxes
+
+    def _infer_dir(self, fname):
+        # 파일 이름을 통해 언어 경로를 추정하여 반환 
+        lang_indicator = fname.split('.')[1]
+        if lang_indicator == 'zh':
+            lang = 'chinese'
+        elif lang_indicator == 'ja':
+            lang = 'japanese'
+        elif lang_indicator == 'th':
+            lang = 'thai'
+        elif lang_indicator == 'vi':
+            lang = 'vietnamese'
+        else:
+            raise ValueError
+        
+        return osp.join(self.root_dir, f'{lang}_receipt', 'img', 'train')
     
     def __len__(self):
         # 전체 이미지 파일 수 반환 
         return len(self.image_fnames)
 
     def __getitem__(self, idx):
-        return self.image_fnames[idx], self.gt_bboxes[self.image_fnames[idx]]
+        # 이미지 이름과 경로
+        image_fname = self.image_fnames[idx]
+        image_fpath = osp.join(self._infer_dir(image_fname), image_fname)
+
+        # BGR -> RGB
+        img = cv2.imread(image_fpath)[:, :, ::-1]
+        return image_fname, self.gt_bboxes[image_fname], img
