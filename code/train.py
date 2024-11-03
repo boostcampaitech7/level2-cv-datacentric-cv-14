@@ -16,7 +16,9 @@ from tqdm import tqdm
 
 from east_dataset import EASTDataset
 from dataset import SceneTextDataset, CustomTrainDataset, CustomValidationDataset
+from deteval import calc_deteval_metrics
 from model import EAST
+from detect import detect
 from utils.Gsheet import Gsheet_param
 from utils.wandb import set_wandb
 import albumentations as A
@@ -35,12 +37,14 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
         validation=False
     )
 
-    # custom dataset 사용시 SceneTextDataset 대신 사용
-    # train_dataset = CustomTrainDataset(
-    #     data_dir,
-    #     split=train_ann,
-    #     transform=custom_transform
-    # )
+    ''' custom dataset 사용시 SceneTextDataset 대신 사용 '''
+    '''
+    train_dataset = CustomTrainDataset(
+        data_dir,
+        split=train_ann,
+        transform=custom_transform
+    )
+    '''
     
     train_dataset = EASTDataset(train_dataset)
     train_num_batches = math.ceil(len(train_dataset) / batch_size)
@@ -54,41 +58,29 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
 
     #2. 검증 데이터셋 로드 및 전처리 ( Validation = True일 때 사용함)
     if validation:
-        valid_dataset = SceneTextDataset(
-            data_dir,
-            split=val_ann,
-            image_size=image_size,
-            crop_size=input_size,
-            validation=True
-        )
+        def collate_fn(batch):
+            images, img_order, gt_dict = [], [], {}
+            for name, points, img in batch:
+                gt_dict[name] = points
+                img_order.append(name)
+                images.append(img)
 
-        valid_dataset = EASTDataset(valid_dataset)
-        valid_num_batches = math.ceil(len(valid_dataset) / batch_size)
+            return images, img_order, gt_dict
+
+        valid_dataset = CustomValidationDataset(
+            data_dir,
+            split=val_ann
+        )
 
         valid_loader = DataLoader(
             valid_dataset,
             batch_size=batch_size,
             shuffle=False,
-            num_workers=num_workers
+            num_workers=num_workers,
+            collate_fn=collate_fn
         )
-
-        # custom dataset 사용시 아래 주석 해제후, 기존 사용 코드 주석 처리 or 제거
-        # 
-        # def collate_fn(batch):
-        #     return {k:v for k, v in batch}
-
-        # valid_dataset = CustomValidationDataset(
-        #     data_dir,
-        #     split=val_ann
-        # )
-
-        # valid_loader = DataLoader(
-        #     valid_dataset,
-        #     batch_size=batch_size,
-        #     shuffle=False,
-        #     num_workers=num_workers,
-        #     collate_fn=collate_fn
-        # )
+        
+        valid_num_batches = math.ceil(len(valid_dataset) / batch_size)
 
     # 3. 모델 초기화 및 학습 설정 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -134,12 +126,12 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
                 iou_loss_total += extra_info['iou_loss']
                 
                 pbar.update(1)
-                val_dict = {
+                train_dict = {
                     'Cls loss': extra_info['cls_loss'], 'Angle loss': extra_info['angle_loss'],
                     'IoU loss': extra_info['iou_loss']
                 }
 
-                pbar.set_postfix(val_dict)
+                pbar.set_postfix(train_dict)
         
         train_log_dict['Epochs'] = epoch
         train_log_dict['Train Mean Loss'] = train_loss / train_num_batches
@@ -160,31 +152,25 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
             with torch.no_grad():
                 valid_start = time.time()
                 print("Evaluating validation results...")
-                valid_cls_loss_total, valid_angle_loss_total, valid_iou_loss_total = 0, 0, 0  # 검증 손실 누적 변수
+                valid_recall, valid_precision, valid_f1_score = 0, 0, 0  # 검증 손실 누적 변수
                 
                 #검증 진행률 표시 
                 with tqdm(total=valid_num_batches, desc=f'[Validation Epoch {epoch}]', disable=False) as pbar:
-                    for img, gt_score_map, gt_geo_map, roi_mask in valid_loader:
-                        loss, extra_info = model.train_step(img, gt_score_map, gt_geo_map, roi_mask)
+                    for images, img_order, gt_bboxes_dict in valid_loader:
+
+                        pred_bboxes = detect(model, images, input_size)
+                        pred_bboxes_dict = {k : v for k, v in zip(img_order, pred_bboxes)}
                         
-                        #손실 값 누적 
-                        loss_val = loss.item()
-                        valid_loss += loss_val
-                        valid_cls_loss_total += extra_info['cls_loss']
-                        valid_angle_loss_total += extra_info['angle_loss']
-                        valid_iou_loss_total += extra_info['iou_loss']
-                        
+                        val_dict = calc_deteval_metrics(pred_bboxes_dict, gt_bboxes_dict)['total']
+                        val_dict['f1 score'] = val_dict.pop('hmean')
+                        val_dict = {k.title() : v for k, v in val_dict.items()}
+
                         pbar.update(1)
-                        val_dict = {
-                            'Cls loss': extra_info['cls_loss'], 'Angle loss': extra_info['angle_loss'],
-                            'IoU loss': extra_info['iou_loss']
-                        }
                         pbar.set_postfix(val_dict)
                 
-                val_log_dict["Valid Mean loss"] = valid_loss / valid_num_batches
-                val_log_dict["Valid Cls loss"] = valid_cls_loss_total / valid_num_batches
-                val_log_dict["Valid Angle loss"] = valid_angle_loss_total / valid_num_batches
-                val_log_dict["Valid IoU loss"] = valid_iou_loss_total / valid_num_batches
+                val_log_dict["Valid Recall"] = valid_recall / valid_num_batches
+                val_log_dict["Valid Precision"] = valid_precision / valid_num_batches
+                val_log_dict["Valid F1 Score"] = valid_f1_score / valid_num_batches
                 
                 # Best Model 저장 로직( 손실 값이 개선된 경우에만 저장함)
                 mean_val_loss = valid_loss / valid_num_batches
