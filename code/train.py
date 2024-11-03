@@ -94,15 +94,14 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
     # Early stopping 설정 변수 
     counter = 0
     best_f1_score = np.inf
-    
-    # 4. 훈련 단계 
-    model.train()
 
     # model 저장 path
     before_path = ""
     save_path = ""
 
     for epoch in range(1, max_epoch + 1):
+        model.train()
+        
         train_loss, valid_loss = 0, 0
         train_start = time.time()
         cls_loss_total, angle_loss_total, iou_loss_total = 0, 0, 0  # 각 손실 항목 누적 변수
@@ -149,57 +148,57 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
             timedelta(seconds=train_end*(max_epoch - epoch))))
             
         #---------------------validation---------------------#    
-        if validation :
-            model.eval()
-            with torch.no_grad():
-                valid_start = time.time()
-                print("Evaluating validation results...")
-                valid_recall, valid_precision, valid_f1_score = 0, 0, 0  # 검증 손실 누적 변수
-                
-                #검증 진행률 표시 
-                with tqdm(total=valid_num_batches, desc=f'[Validation Epoch {epoch}]', disable=False) as pbar:
-                    for images, img_order, gt_bboxes_dict in valid_loader:
-
-                        pred_bboxes = detect(model, images, input_size)
-                        pred_bboxes_dict = {k : v for k, v in zip(img_order, pred_bboxes)}
-                        
-                        val_dict = calc_deteval_metrics(pred_bboxes_dict, gt_bboxes_dict)['total']
-                        val_dict['f1 score'] = val_dict.pop('hmean')
-                        val_dict = {k.title() : v for k, v in val_dict.items()}
-                        
-                        valid_recall += val_dict['Recall']
-                        valid_precision += val_dict['Precision']
-                        valid_f1_score += val_dict['F1 Score']
-
-                        pbar.update(1)
-                        pbar.set_postfix(val_dict)
-                
-                val_log_dict["Valid Recall"] = valid_recall / valid_num_batches
-                val_log_dict["Valid Precision"] = valid_precision / valid_num_batches
-                val_log_dict["Valid F1 Score"] = valid_f1_score / valid_num_batches
-                
-                # Best Model 저장 로직( 손실 값이 개선된 경우에만 저장함)
-                if best_f1_score < val_log_dict['Valid F1 Score']:
-                    best_f1_score = val_log_dict['Valid F1 Score']
-                    best_f1_score_epoch = epoch
+        if epoch >= 100 and epoch % save_interval == 0:
+            if validation:
+                model.eval()
+                with torch.no_grad():
+                    valid_start = time.time()
+                    print("Evaluating validation results...")
+                    valid_recall, valid_precision, valid_f1_score = 0, 0, 0  # 검증 손실 누적 변수
                     
-                    save_path = osp.join(model_dir, f"best_f1_score_{best_f1_score:.4f}_{best_f1_score_epoch}epoch_.pth")
-                    counter = 0
-                else:
-                    counter += 1
-                    print(f"Not Val Update.. Counter : {counter}")
-                    
-            valid_end = time.time() - valid_start
-            
-            print(f"{'Valid Mean F1 Score':<23}: {val_log_dict['Valid F1 Score']:>8.4f}\n"\
-                 f"{'Valid Mean Recall':<23}: {val_log_dict['Valid Recall']:>8.4f}\n"\
-                 f"{'Valid Mean Presicision':<23}: {val_log_dict['Valid Precision']:>8.4f} || Elapsed time: {timedelta(seconds=valid_end)}")
-            
-            print(f"Best F1 Score : {best_f1_score:.4f} at Epoch {best_f1_score_epoch}")
+                    #검증 진행률 표시 
+                    with tqdm(total=valid_num_batches, desc=f'[Validation Epoch {epoch}]', disable=False) as pbar:
+                        for images, img_order, gt_bboxes_dict in valid_loader:
 
-        # Validation == False 
-        else:
-            if epoch >= 100 and epoch % save_interval == 0:
+                            pred_bboxes = detect(model, images, input_size)
+                            pred_bboxes_dict = {k : v for k, v in zip(img_order, pred_bboxes)}
+                            
+                            val_dict = calc_deteval_metrics(pred_bboxes_dict, gt_bboxes_dict)['total']
+                            val_dict['f1 score'] = val_dict.pop('hmean')
+                            val_dict = {k.title() : v for k, v in val_dict.items()}
+                            
+                            valid_recall += val_dict['Recall']
+                            valid_precision += val_dict['Precision']
+                            valid_f1_score += val_dict['F1 Score']
+
+                            pbar.update(1)
+                            pbar.set_postfix(val_dict)
+                    
+                    val_log_dict["Valid Recall"] = valid_recall / valid_num_batches
+                    val_log_dict["Valid Precision"] = valid_precision / valid_num_batches
+                    val_log_dict["Valid F1 Score"] = valid_f1_score / valid_num_batches
+                    
+                    # Best Model 저장 로직( 손실 값이 개선된 경우에만 저장함)
+                    if best_f1_score < val_log_dict['Valid F1 Score']:
+                        best_f1_score = val_log_dict['Valid F1 Score']
+                        best_f1_score_epoch = epoch
+                        
+                        save_path = osp.join(model_dir, f"best_f1_score_{best_f1_score:.4f}_{best_f1_score_epoch}epoch_.pth")
+                        counter = 0
+                    else:
+                        counter += 1
+                        print(f"Not Val Update.. Counter : {counter}")
+                        
+                valid_end = time.time() - valid_start
+                
+                print(f"{'Valid Mean F1 Score':<23}: {val_log_dict['Valid F1 Score']:>8.4f}\n"\
+                    f"{'Valid Mean Recall':<23}: {val_log_dict['Valid Recall']:>8.4f}\n"\
+                    f"{'Valid Mean Presicision':<23}: {val_log_dict['Valid Precision']:>8.4f} || Elapsed time: {timedelta(seconds=valid_end)}")
+                
+                print(f"Best F1 Score : {best_f1_score:.4f} at Epoch {best_f1_score_epoch}")
+
+            # Validation == False 
+            else:
                 save_path = osp.join(model_dir, f"epoch_{epoch}.pth")
 
         # wandb에 train, val logging
