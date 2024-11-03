@@ -179,7 +179,7 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
                 val_log_dict["Valid F1 Score"] = valid_f1_score / valid_num_batches
                 
                 # Best Model 저장 로직( 손실 값이 개선된 경우에만 저장함)
-                if best_f1_score > val_log_dict['Valid F1 Score']:
+                if best_f1_score < val_log_dict['Valid F1 Score']:
                     best_f1_score = val_log_dict['Valid F1 Score']
                     best_f1_score_epoch = epoch
                     
