@@ -555,7 +555,7 @@ class CustomTrainDataset(Dataset):
 class CustomValidationDataset(Dataset):
     def __init__(self, 
                  root_dir,
-                 split='val_fold_1',):
+                 split='val_fold_1'):
         
         # 지원하는 언어 목록 및 기본 설정 초기화 
         self._lang_list = ['chinese', 'japanese', 'thai', 'vietnamese']
