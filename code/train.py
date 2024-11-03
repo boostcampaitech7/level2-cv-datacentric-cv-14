@@ -27,7 +27,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 def do_training(data_dir, model_dir, device, image_size, input_size, num_workers, batch_size,
-                learning_rate, max_epoch, save_interval, validation, train_ann, val_ann, custom_transform=[]):
+                learning_rate, max_epoch, save_interval, validation, train_ann, val_ann, custom_transform=None):
     
     # 1. 훈련 데이터셋 로드 및 전처리 
     train_dataset = SceneTextDataset(

@@ -462,12 +462,8 @@ class CustomTrainDataset(Dataset):
                  split='train',
                  ignore_under_threshold=10,
                  drop_under_threshold=1,
-                 transform=[
-                     A.LongestMaxSize(1024),
-                     A.PadIfNeeded(1024, border_mode=1),
-                     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
-                 ]):
-        
+                 transform=None):
+
         # 지원하는 언어 목록 및 기본 설정 초기화 
         self._lang_list = ['chinese', 'japanese', 'thai', 'vietnamese']
         self.root_dir = root_dir
@@ -491,6 +487,10 @@ class CustomTrainDataset(Dataset):
 
         # Transform 설정
         # 입력 augmentation으로 pipeline 구성
+        transform = transform if transform is not None else [A.LongestMaxSize(1024),
+                                                            A.PadIfNeeded(1024, border_mode=1),
+                                                            A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))]
+        
         self.transform = A.Compose(transform,
                                    keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
 
