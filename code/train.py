@@ -23,7 +23,8 @@ from utils.Gsheet import Gsheet_param
 from utils.wandb import set_wandb
 import albumentations as A
 
-
+import warnings
+warnings.filterwarnings('ignore')
 
 def do_training(data_dir, model_dir, device, image_size, input_size, num_workers, batch_size,
                 learning_rate, max_epoch, save_interval, validation, train_ann, val_ann, custom_transform=[]):
@@ -164,6 +165,10 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
                         val_dict = calc_deteval_metrics(pred_bboxes_dict, gt_bboxes_dict)['total']
                         val_dict['f1 score'] = val_dict.pop('hmean')
                         val_dict = {k.title() : v for k, v in val_dict.items()}
+                        
+                        valid_recall += val_dict['Recall']
+                        valid_precision += val_dict['Precision']
+                        valid_f1_score += val_dict['F1 Score']
 
                         pbar.update(1)
                         pbar.set_postfix(val_dict)
