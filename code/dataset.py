@@ -385,6 +385,7 @@ class SceneTextDataset(Dataset):
         else:
             raise ValueError
         return osp.join(self.root_dir, f'{lang}_receipt', 'img', 'train')
+    
     def __len__(self):
         # 전체 이미지 파일 수 반환 
         return len(self.image_fnames)
@@ -456,17 +457,13 @@ class SceneTextDataset(Dataset):
 
         return image, word_bboxes, roi_mask
 
-class CustomDataset(Dataset):
+class CustomTrainDataset(Dataset):
     def __init__(self, root_dir,
                  split='train',
                  ignore_under_threshold=10,
                  drop_under_threshold=1,
-                 transform=[
-                     A.LongestMaxSize(1024),
-                     A.PadIfNeeded(1024, border_mode=1),
-                     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
-                 ]):
-        
+                 transform=None):
+
         # 지원하는 언어 목록 및 기본 설정 초기화 
         self._lang_list = ['chinese', 'japanese', 'thai', 'vietnamese']
         self.root_dir = root_dir
@@ -490,6 +487,10 @@ class CustomDataset(Dataset):
 
         # Transform 설정
         # 입력 augmentation으로 pipeline 구성
+        transform = transform if transform is not None else [A.LongestMaxSize(1024),
+                                                            A.PadIfNeeded(1024, border_mode=1),
+                                                            A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))]
+        
         self.transform = A.Compose(transform,
                                    keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
 
@@ -550,3 +551,63 @@ class CustomDataset(Dataset):
         roi_mask = generate_roi_mask(image, vertices, labels)
 
         return image, word_bboxes, roi_mask
+
+class CustomValidationDataset(Dataset):
+    def __init__(self, 
+                 root_dir,
+                 split='val_fold_1'):
+        
+        # 지원하는 언어 목록 및 기본 설정 초기화 
+        self._lang_list = ['chinese', 'japanese', 'thai', 'vietnamese']
+        self.root_dir = root_dir
+        total_anno = dict(images=dict())
+        
+        # 각 언어별로 데이터 로드하기 
+        for nation in self._lang_list:
+            with open(osp.join(root_dir, '{}_receipt/ufo/{}.json'.format(nation, split)), 'r', encoding='utf-8') as f:
+                anno = json.load(f)
+            # 모든 언어 데이터를 합쳐 하나로 저장 
+            for im in anno['images']:
+                total_anno['images'][im] = anno['images'][im]
+
+        # 전체 데이터와 이미지 파일 이름 저장 
+        self.anno = total_anno
+        self.image_fnames = sorted(self.anno['images'].keys())
+
+        gt_bboxes = dict()
+
+        for img in self.image_fnames:
+            gt_bboxes[img] = []
+            for idx in self.anno['images'][img]['words'].keys():
+                gt_bboxes[img].append(self.anno['images'][img]['words'][idx]['points'])
+
+        self.gt_bboxes = gt_bboxes
+
+    def _infer_dir(self, fname):
+        # 파일 이름을 통해 언어 경로를 추정하여 반환 
+        lang_indicator = fname.split('.')[1]
+        if lang_indicator == 'zh':
+            lang = 'chinese'
+        elif lang_indicator == 'ja':
+            lang = 'japanese'
+        elif lang_indicator == 'th':
+            lang = 'thai'
+        elif lang_indicator == 'vi':
+            lang = 'vietnamese'
+        else:
+            raise ValueError
+        
+        return osp.join(self.root_dir, f'{lang}_receipt', 'img', 'train')
+    
+    def __len__(self):
+        # 전체 이미지 파일 수 반환 
+        return len(self.image_fnames)
+
+    def __getitem__(self, idx):
+        # 이미지 이름과 경로
+        image_fname = self.image_fnames[idx]
+        image_fpath = osp.join(self._infer_dir(image_fname), image_fname)
+
+        # BGR -> RGB
+        img = cv2.imread(image_fpath)[:, :, ::-1]
+        return image_fname, self.gt_bboxes[image_fname], img
