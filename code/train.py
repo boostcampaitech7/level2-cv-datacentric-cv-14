@@ -15,7 +15,7 @@ from torch.optim import lr_scheduler
 from tqdm import tqdm
 
 from east_dataset import EASTDataset
-from dataset import SceneTextDataset, CustomDataset
+from dataset import SceneTextDataset, CustomTrainDataset
 from model import EAST
 from utils.Gsheet import Gsheet_param
 from utils.wandb import set_wandb
@@ -36,7 +36,7 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
     )
 
     # custom dataset 사용시 SceneTextDataset 대신 사용
-    # train_dataset = CustomDataset(
+    # train_dataset = CustomTrainDataset(
     #     data_dir,
     #     split=train_ann,
     #     transform=custom_transform
@@ -63,7 +63,7 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
         )
 
         # custom dataset 사용시 SceneTextDataset 대신 사용
-        # valid_dataset = CustomDataset(
+        # valid_dataset = CustomTrainDataset(
         #     data_dir,
         #     split=val_ann
         # )

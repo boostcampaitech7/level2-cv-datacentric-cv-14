@@ -456,7 +456,7 @@ class SceneTextDataset(Dataset):
 
         return image, word_bboxes, roi_mask
 
-class CustomDataset(Dataset):
+class CustomTrainDataset(Dataset):
     def __init__(self, root_dir,
                  split='train',
                  ignore_under_threshold=10,
@@ -550,3 +550,41 @@ class CustomDataset(Dataset):
         roi_mask = generate_roi_mask(image, vertices, labels)
 
         return image, word_bboxes, roi_mask
+
+class CustomValidationDataset(Dataset):
+    def __init__(self, 
+                 root_dir,
+                 split='val_fold_1',):
+        
+        # 지원하는 언어 목록 및 기본 설정 초기화 
+        self._lang_list = ['chinese', 'japanese', 'thai', 'vietnamese']
+        self.root_dir = root_dir
+        total_anno = dict(images=dict())
+        
+        # 각 언어별로 데이터 로드하기 
+        for nation in self._lang_list:
+            with open(osp.join(root_dir, '{}_receipt/ufo/{}.json'.format(nation, split)), 'r', encoding='utf-8') as f:
+                anno = json.load(f)
+            # 모든 언어 데이터를 합쳐 하나로 저장 
+            for im in anno['images']:
+                total_anno['images'][im] = anno['images'][im]
+
+        # 전체 데이터와 이미지 파일 이름 저장 
+        self.anno = total_anno
+        self.image_fnames = sorted(self.anno['images'].keys())
+
+        gt_bboxes = dict()
+
+        for img in self.image_fnames:
+            gt_bboxes[img] = []
+            for idx in self.anno['images'][img]['words'].keys():
+                gt_bboxes[img].append(self.anno['images'][img]['words'][idx]['points'])
+
+        self.gt_bboxes = gt_bboxes
+    
+    def __len__(self):
+        # 전체 이미지 파일 수 반환 
+        return len(self.image_fnames)
+
+    def __getitem__(self, idx):
+        return self.image_fnames[idx], self.gt_bboxes[self.image_fnames[idx]]
