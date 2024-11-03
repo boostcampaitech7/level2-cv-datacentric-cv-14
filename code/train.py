@@ -15,7 +15,7 @@ from torch.optim import lr_scheduler
 from tqdm import tqdm
 
 from east_dataset import EASTDataset
-from dataset import SceneTextDataset, CustomTrainDataset
+from dataset import SceneTextDataset, CustomTrainDataset, CustomValidationDataset
 from model import EAST
 from utils.Gsheet import Gsheet_param
 from utils.wandb import set_wandb
@@ -62,21 +62,33 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
             validation=True
         )
 
-        # custom dataset 사용시 SceneTextDataset 대신 사용
-        # valid_dataset = CustomTrainDataset(
-        #     data_dir,
-        #     split=val_ann
-        # )
-
         valid_dataset = EASTDataset(valid_dataset)
         valid_num_batches = math.ceil(len(valid_dataset) / batch_size)
-        
+
         valid_loader = DataLoader(
             valid_dataset,
             batch_size=batch_size,
             shuffle=False,
             num_workers=num_workers
         )
+
+        # custom dataset 사용시 아래 주석 해제후, 기존 사용 코드 주석 처리 or 제거
+        # 
+        # def collate_fn(batch):
+        #     return {k:v for k, v in batch}
+
+        # valid_dataset = CustomValidationDataset(
+        #     data_dir,
+        #     split=val_ann
+        # )
+
+        # valid_loader = DataLoader(
+        #     valid_dataset,
+        #     batch_size=batch_size,
+        #     shuffle=False,
+        #     num_workers=num_workers,
+        #     collate_fn=collate_fn
+        # )
 
     # 3. 모델 초기화 및 학습 설정 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
