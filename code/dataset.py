@@ -492,12 +492,11 @@ class CustomTrainDataset(Dataset):
 
         # Transform 설정
         # 입력 augmentation으로 pipeline 구성
-        transform = transform if transform is not None else [A.LongestMaxSize(image_size),
-                                                            A.SmallestMaxSize(crop_size),
-                                                            A.Normalize()]
+        transform = transform if transform is not None else [A.LongestMaxSize(image_size)]
         
         self.transform = A.Compose(transform,
                                    keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
+        self.normalize = A.Compose(A.Normalize())
 
     def _infer_dir(self, fname):
         # 파일 이름을 통해 언어 경로를 추정하여 반환 
@@ -553,7 +552,10 @@ class CustomTrainDataset(Dataset):
                                keypoints=[tuple(point) for point in vertices.reshape(-1, 2)]).values()
 
         # crop 적용
-        image, vertices = crop_img(image, np.array(vertices, dtype=np.float32).reshape(-1, 8), labels, self.crop_size)
+        image, vertices = crop_img(Image.fromarray(image), np.array(vertices, dtype=np.float32).reshape(-1, 8), labels, self.crop_size)
+
+        image = np.array(image)
+        image = self.normalize(image=image)
 
         word_bboxes = np.reshape(vertices, (-1, 4, 2))
         roi_mask = generate_roi_mask(image, vertices, labels)

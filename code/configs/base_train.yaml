@@ -3,8 +3,8 @@ model_dir: ./trained_models
 device: cuda
 # only for train #
 
-image_size: 2048
-input_size: 1024
+image_size: &image_size 2048
+input_size: &input_size 1024
 
 batch_size: 8
 num_workers: 8
@@ -17,14 +17,8 @@ save_interval: 5
 # Custom Dataset 사용시 주석 해제
 # transform: 
 #   LongestMaxSize:  # albumentations의 함수명 정확하게 작성
-#     max_size: 1024 # 해당 함수의 인자 작성
-#   PadIfNeeded:
-#     min_width: 1024
-#     min_height: 1024
-#     border_mode: 1
-#   Normalize:
-#     mean: [0.5, 0.5, 0.5]
-#     std: [0.5, 0.5, 0.5]
+#     max_size: *image_size # 해당 함수의 인자 작성
+# Normalize는 dataset에서 마지막에 추가해주기 때문에 필요 X
 
 #------------------------------------------------------------#
 # save parameters for Gsheet & Wandb #

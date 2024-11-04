@@ -18,9 +18,9 @@ save_interval: 5
 transform: 
   LongestMaxSize:  # albumentations의 함수명 정확하게 작성
     max_size: *image_size # 해당 함수의 인자 작성
-  SmallestMaxSize:
-    max_size: *input_size
-  Normalize: {}
+  # SmallestMaxSize:
+  #   max_size: *input_size
+  # Normalize: {}
   Rotate:
     limit: 15 
     border_mode: 1
@@ -31,7 +31,7 @@ transform:
 
 #------------------------------------------------------------#
 # save parameters for Gsheet & Wandb #
-experiment_name: Agumentation
+experiment_name: Augmentation
 experiment_detail: Add Rotate and Perspective
 
 #------------------------------------------------------------#
