@@ -13,12 +13,12 @@ LANGUAGE_CONFIGS = {
     'chinese': {
         'dict_path': './lang_example/chinese_receipt_dict.txt',
         'lang_code': 'cn',
-        'font_path': './fonts/NotoSansSC-Regular.otf'
+        'font_path': None
     },
     'japanese': {
         'dict_path': './lang_example/japanese_receipt_dict.txt', 
         'lang_code': 'ja',
-        'font_path': './fonts/NotoSansJP-Regular.otf'
+        'font_path': None
     },
     'vietnamese': {
         'dict_path': './lang_example/vietnamese_receipt_dict.txt',
@@ -28,7 +28,7 @@ LANGUAGE_CONFIGS = {
     'thai': {
         'dict_path': './lang_example/thai_receipt_dict.txt',
         'lang_code': 'th',
-        'font_path': './fonts/NotoSansThai-Regular.ttf'
+        'font_path': './fonts/Itim-Regular.ttf'
     }
 }
 
@@ -61,7 +61,7 @@ def get_words(count: int, language: str) -> List[Dict]:
             blur=3,
             random_blur=True,
             distorsion_type=1,
-            fonts=[config['font_path']]
+            fonts=[config['font_path']] if config['font_path'] else []
         )
         
         for _, (patch, text) in enumerate(generator):
@@ -145,38 +145,43 @@ def create_ufo_entry(img_filename: str, doc: Document) -> dict:
         
     return entry
 
-def generate_synthetic_data(language: str, target_count: int = 100):
-    """특정 언어에 대한 합성 데이터 생성"""
+def generate_synthetic_data(images_per_language: int = 100):
+    """각 언어별로 지정된 수만큼 합성 데이터를 생성하여 하나의 디렉토리에 저장"""
     # 디렉토리 생성
-    os.makedirs(f"./synth_receipt_data/{language}/img/train", exist_ok=True)
-    os.makedirs(f"./synth_receipt_data/{language}/train/ufo", exist_ok=True)
+    os.makedirs("./synth_receipt/img/train", exist_ok=True)
+    os.makedirs("./synth_receipt/train/ufo", exist_ok=True)
 
     # 합성 데이터 생성
     ufo_data = {"images": {}}
-    current_count = len(os.listdir(f"./synth_receipt_data/{language}/img/train"))
+    current_count = 0
     
-    while current_count < target_count:
-        # 문서 생성 및 변형
-        doc = make_document(get_words(30, language))
-        perturb_document_inplace(doc)
+    # 각 언어별로 이미지 생성
+    for language in LANGUAGE_CONFIGS.keys():
+        print(f"Generating {images_per_language} images for {language}...")
         
-        # 이미지 저장
-        img_filename = f"synthetic_image_{language}_{time.strftime('%Y%m%d_%H%M%S')}_{current_count:03d}.jpg"
-        img_path = f"./synth_receipt_data/{language}/img/train/{img_filename}"
-        doc["image"].save(img_path)
-        
-        # UFO 데이터 추가
-        ufo_data["images"][img_filename] = create_ufo_entry(img_filename, doc)
-        current_count += 1
-        time.sleep(1)
+        for i in range(images_per_language):
+            # 문서 생성 및 변형
+            doc = make_document(get_words(40, language))
+            perturb_document_inplace(doc)
+            
+            # 이미지 저장
+            img_filename = f"{language}.synthetic.{current_count:03d}.jpg"
+            img_path = f"./synth_receipt/img/train/{img_filename}"
+            doc["image"].save(img_path)
+            
+            # UFO 데이터 추가
+            ufo_data["images"][img_filename] = create_ufo_entry(img_filename, doc)
+            current_count += 1
+            time.sleep(1)
+            
+        print(f"Completed generating {images_per_language} images for {language}")
 
     # UFO 데이터 저장
-    json_path = f"./synth_receipt_data/{language}/train/ufo/train.json"
+    json_path = "./synth_receipt/train/ufo/train.json"
     with open(json_path, 'w', encoding='utf-8') as f:
         json.dump(ufo_data, f, ensure_ascii=False, indent=4)
 
-# 각 언어별로 데이터 생성
-for language in LANGUAGE_CONFIGS.keys():
-    print(f"Generating synthetic data for {language}...")
-    generate_synthetic_data(language)
-    print(f"Completed generating data for {language}")
+# 각 언어별로 100개씩 데이터 생성
+print("Starting synthetic data generation...")
+generate_synthetic_data()
+print("Completed generating all data")
