@@ -3,6 +3,15 @@ model_dir: ./trained_models
 device: cuda
 # only for train #
 
+# save parameters for Gsheet & Wandb #
+experiment_name: base 학습
+experiment_detail: base 점수 확인용
+
+# train, validation json file
+validation: True
+train_ann : train_fold_1
+val_ann : val_fold_1
+
 image_size: 2048
 input_size: 1024
 
@@ -13,6 +22,7 @@ seed : 42
 learning_rate: 1e-3
 max_epoch: 150
 save_interval: 5
+
 
 # Custom Dataset 사용시 주석 해제
 # transform: 
@@ -26,13 +36,5 @@ save_interval: 5
 #     mean: [0.5, 0.5, 0.5]
 #     std: [0.5, 0.5, 0.5]
 
-#------------------------------------------------------------#
-# save parameters for Gsheet & Wandb #
-experiment_name: UFO2COCO
-experiment_detail: COCO Segmentation point 사용
 
-#------------------------------------------------------------#
-# train, validation json file
-validation: True
-train_ann : train_fold_1
-val_ann : val_fold_1
+
