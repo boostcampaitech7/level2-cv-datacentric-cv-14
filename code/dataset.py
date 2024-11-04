@@ -555,7 +555,7 @@ class CustomTrainDataset(Dataset):
         image, vertices = crop_img(Image.fromarray(image), np.array(vertices, dtype=np.float32).reshape(-1, 8), labels, self.crop_size)
 
         image = np.array(image)
-        image = self.normalize(image=image)
+        image = self.normalize(image=image)['image']
 
         word_bboxes = np.reshape(vertices, (-1, 4, 2))
         roi_mask = generate_roi_mask(image, vertices, labels)
