@@ -161,7 +161,7 @@ def generate_synthetic_data(images_per_language: int = 100):
         
         for i in range(images_per_language):
             # 문서 생성 및 변형
-            doc = make_document(get_words(40, language))
+            doc = make_document(get_words(30, language))
             perturb_document_inplace(doc)
             
             # 이미지 저장
