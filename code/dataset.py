@@ -552,6 +552,9 @@ class CustomTrainDataset(Dataset):
         image, vertices = self.transform(image=image, 
                                keypoints=[tuple(point) for point in vertices.reshape(-1, 2)]).values()
 
+        # crop 적용
+        image, vertices = crop_img(image, np.array(vertices, dtype=np.float32).reshape(-1, 8), labels, self.crop_size)
+
         word_bboxes = np.reshape(vertices, (-1, 4, 2))
         roi_mask = generate_roi_mask(image, vertices, labels)
 

@@ -1,5 +1,5 @@
 data_dir: /data/ephemeral/home/data
-model_dir: ./trained_models/Agumentation/base
+model_dir: ./trained_models/Agumentation/rotate_perspective
 device: cuda
 # only for train #
 
