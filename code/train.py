@@ -89,11 +89,12 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
     model.to(device)
     
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[max_epoch // 2], gamma=0.1)
+    scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=max_epoch)
      
     # Early stopping 설정 변수 
-    counter = 0
-    best_f1_score = np.inf
+    counter = 10
+    best_f1_score = 0
+    best_f1_score_epoch = 0
 
     # model 저장 path
     before_path = ""
