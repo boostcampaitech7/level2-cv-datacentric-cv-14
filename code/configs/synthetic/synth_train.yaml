@@ -4,8 +4,8 @@ device: cuda
 # only for train #
 
 # save parameters for Gsheet & Wandb #
-experiment_name: base 학습
-experiment_detail: base 점수 확인용
+experiment_name: W synth data
+experiment_detail: 합성데이터 넣어서 학습하기
 
 # train, validation json file
 validation: True
