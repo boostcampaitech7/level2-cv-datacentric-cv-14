@@ -20,8 +20,9 @@ def parse_args():
     parser = ArgumentParser()
 
     # Conventional args
-    parser.add_argument('--data_dir', default=os.environ.get('SM_CHANNEL_EVAL', 'data'))
-    parser.add_argument('--model_dir', default=os.environ.get('SM_CHANNEL_MODEL', 'trained_models'))
+    parser.add_argument('model_path')
+
+    parser.add_argument('--data_dir', default=os.environ.get('SM_CHANNEL_EVAL', '/data/ephemeral/home/data'))
     parser.add_argument('--output_dir', default=os.environ.get('SM_OUTPUT_DATA_DIR', 'predictions'))
 
     parser.add_argument('--device', default='cuda' if cuda.is_available() else 'cpu')
@@ -68,7 +69,7 @@ def main(args):
     model = EAST(pretrained=False).to(args.device)
 
     # Get paths to checkpoint files
-    ckpt_fpath = osp.join(args.model_dir, 'latest.pth')
+    ckpt_fpath = args.model_path
 
     if not osp.exists(args.output_dir):
         os.makedirs(args.output_dir)
