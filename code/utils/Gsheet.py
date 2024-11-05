@@ -6,13 +6,15 @@ from gspread_formatting import *
 from dotenv import dotenv_values
 
 # json 파일이 위치한 경로를 값으로 줘야 합니다.
-def Gsheet_param(cfg):
+def Gsheet_param(cfg, best_f1_score,best_f1_score_epoch):
     # env 파일 불러오기
     env_path = "/data/ephemeral/home/env/.env"
     env = dotenv_values(env_path)
 
     # 서비스 연결
+
     gc = gspread.service_account(env['JSON_PATH'])
+
 
     # url에 따른 spread sheet 열기
     doc = gc.open_by_url(env['URL'])
@@ -26,9 +28,15 @@ def Gsheet_param(cfg):
     for idx, (key, value) in enumerate(cfg.items()):
         if idx < 4:
             pass
+        elif key == 'transform':
+            param_dict[key] = ' / '.join(f'{aug}'for aug, params in value.items())
+
         else :
             param_dict[key] = value
 
+    # best f1 score와 best f1 score epoch 추가
+    param_dict['best_f1_score'] = best_f1_score
+    param_dict['best_f1_score_epoch'] = best_f1_score_epoch
 
     # sheet에 추가하기 위해서 값들을 list로 저장
     params = [param_dict[k] for k in param_dict]
