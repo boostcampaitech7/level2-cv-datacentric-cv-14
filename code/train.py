@@ -30,15 +30,6 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
                 learning_rate, max_epoch, save_interval, validation, train_ann, val_ann, custom_transform=None):
     
     # 1. 훈련 데이터셋 로드 및 전처리 
-    # train_dataset = SceneTextDataset(
-    #     data_dir,
-    #     split=train_ann,
-    #     image_size=image_size,
-    #     crop_size=input_size,
-    #     validation=False
-    # )
-
-    ''' custom dataset 사용시 SceneTextDataset 대신 사용 '''
     train_dataset = CustomTrainDataset(
         data_dir,
         split=train_ann,
@@ -149,7 +140,7 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
             timedelta(seconds=train_end*(max_epoch - epoch))))
             
         #---------------------validation---------------------#    
-        if epoch >= 100 and epoch % save_interval == 0:
+        if epoch >= 75 and epoch % save_interval == 0:
             if validation:
                 model.eval()
                 with torch.no_grad():

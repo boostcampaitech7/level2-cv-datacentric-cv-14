@@ -1,7 +1,7 @@
 import os.path as osp
 import math
 import json
-from PIL import Image
+from PIL import Image, ExifTags
 
 import torch
 import numpy as np
@@ -530,9 +530,32 @@ class CustomTrainDataset(Dataset):
             num_pts = np.array(word_info['points']).shape[0]
             if num_pts > 4:
                 continue
-            if word_info['transciption'] == "":
+            
+            # 절취선 제거
+            if word_info['transcription'] == "":
                 continue
-            vertices.append(np.array(word_info['points']).flatten())
+
+            # 기존의 bbox 너비 늘리기
+            points = np.array(word_info['points'])
+
+            x_coords = points[:, 0]
+            y_coords = points[:, 1]
+
+            x_min, x_max = x_coords.min(), x_coords.max()
+            y_min, y_max = y_coords.min(), y_coords.max()
+
+            bbox_width = x_max - x_min
+            new_x_min = x_min - (bbox_width * 0.1)
+            new_x_max = x_max + (bbox_width * 0.1)
+
+            expanded_points = np.array([
+                [new_x_min, y_min],
+                [new_x_max, y_min],
+                [new_x_max, y_max],
+                [new_x_min, y_max]
+            ])
+
+            vertices.append(expanded_points.flatten())
             labels.append(1) # 1은 유효 텍스트로 표시함
         vertices, labels = np.array(vertices, dtype=np.float32), np.array(labels, dtype=np.int64)
 
@@ -546,6 +569,22 @@ class CustomTrainDataset(Dataset):
 
         # 4. 이미지 파일 열기 
         image = Image.open(image_fpath)
+
+        # 돌아간 이미지 정상화
+        try:  # 회전된 이미지만 처리
+            for orientation in ExifTags.TAGS.keys():
+                if ExifTags.TAGS[orientation] == 'Orientation':
+                    break
+            exif = image._getexif()
+            if exif is not None and orientation in exif:
+                if exif[orientation] == 3:
+                    image= image.rotate(180, expand=True)
+                elif exif[orientation] == 6:
+                    image = image.rotate(270, expand=True)
+                elif exif[orientation] == 8:
+                    image = image.rotate(90, expand=True)
+        except (AttributeError, KeyError, IndexError):
+            pass
 
         if image.mode != 'RGB':
             image = image.convert('RGB')
