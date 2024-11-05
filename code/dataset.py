@@ -532,7 +532,7 @@ class CustomTrainDataset(Dataset):
                 continue
             
             # 절취선 제거
-            if word_info['transciption'] == "":
+            if word_info['transcription'] == "":
                 continue
 
             # 기존의 bbox 너비 늘리기
