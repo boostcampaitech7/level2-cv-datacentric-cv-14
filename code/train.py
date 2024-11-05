@@ -30,22 +30,22 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
                 learning_rate, max_epoch, save_interval, validation, train_ann, val_ann, custom_transform=None):
     
     # 1. 훈련 데이터셋 로드 및 전처리 
-    train_dataset = SceneTextDataset(
+    # train_dataset = SceneTextDataset(
+    #     data_dir,
+    #     split=train_ann,
+    #     image_size=image_size,
+    #     crop_size=input_size,
+    #     validation=False
+    # )
+
+    ''' custom dataset 사용시 SceneTextDataset 대신 사용 '''
+    train_dataset = CustomTrainDataset(
         data_dir,
         split=train_ann,
         image_size=image_size,
         crop_size=input_size,
-        validation=False
-    )
-
-    ''' custom dataset 사용시 SceneTextDataset 대신 사용 '''
-    '''
-    train_dataset = CustomTrainDataset(
-        data_dir,
-        split=train_ann,
         transform=custom_transform
     )
-    '''
     
     train_dataset = EASTDataset(train_dataset)
     train_num_batches = math.ceil(len(train_dataset) / batch_size)
@@ -234,8 +234,8 @@ def main(args):
     }
 
     # custom dataset 사용시 주석 해제
-    # training_args['custom_transform'] = [getattr(A, aug)(**params) 
-    #                                      for aug, params in args_dict['transform'].items()]
+    training_args['custom_transform'] = [getattr(A, aug)(**params) 
+                                         for aug, params in args_dict['transform'].items()]
 
     args = Namespace(**training_args)
     do_training(**args.__dict__)

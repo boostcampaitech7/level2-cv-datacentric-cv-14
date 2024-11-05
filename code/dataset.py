@@ -462,6 +462,8 @@ class SceneTextDataset(Dataset):
 class CustomTrainDataset(Dataset):
     def __init__(self, root_dir,
                  split='train',
+                 image_size=2048,
+                 crop_size=1024,
                  ignore_under_threshold=10,
                  drop_under_threshold=1,
                  transform=None):
@@ -487,14 +489,16 @@ class CustomTrainDataset(Dataset):
         self.drop_under_threshold = drop_under_threshold
         self.ignore_under_threshold = ignore_under_threshold
 
+        self.image_size = image_size
+        self.crop_size = crop_size
+
         # Transform 설정
         # 입력 augmentation으로 pipeline 구성
-        transform = transform if transform is not None else [A.LongestMaxSize(1024),
-                                                            A.PadIfNeeded(1024, border_mode=1),
-                                                            A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))]
+        transform = transform if transform is not None else [A.LongestMaxSize(image_size)]
         
         self.transform = A.Compose(transform,
                                    keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
+        self.normalize = A.Compose(A.Normalize())
 
     def _infer_dir(self, fname):
         # 파일 이름을 통해 언어 경로를 추정하여 반환 
@@ -550,6 +554,12 @@ class CustomTrainDataset(Dataset):
         # 이미지 변환 적용 
         image, vertices = self.transform(image=image, 
                                keypoints=[tuple(point) for point in vertices.reshape(-1, 2)]).values()
+
+        # crop 적용
+        image, vertices = crop_img(Image.fromarray(image), np.array(vertices, dtype=np.float32).reshape(-1, 8), labels, self.crop_size)
+
+        image = np.array(image)
+        image = self.normalize(image=image)['image']
 
         word_bboxes = np.reshape(vertices, (-1, 4, 2))
         roi_mask = generate_roi_mask(image, vertices, labels)
