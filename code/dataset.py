@@ -387,14 +387,37 @@ class SceneTextDataset(Dataset):
             num_pts = np.array(word_info['points']).shape[0]
 
             transcription = word_info['transcription']
-    
+
             # 절취선 제거
             if transcription in [""]:
                 continue
 
             if num_pts > 4:
                 continue
-            vertices.append(np.array(word_info['points']).flatten())
+            
+            
+            points = np.array(word_info['points'])
+
+        # 좌우 10%씩 bbox 확장 **수정**
+            x_coords = points[:, 0]
+            y_coords = points[:, 1]
+
+            x_min, x_max = x_coords.min(), x_coords.max()
+            y_min, y_max = y_coords.min(), y_coords.max()
+            bbox_width = x_max - x_min
+
+            new_x_min = x_min - (bbox_width * 0.1)
+            new_x_max = x_max + (bbox_width * 0.1)
+
+        # 새로운 확장된 좌표로 points 업데이트 **수정**
+            expanded_points = np.array([
+                [new_x_min, y_min],
+                [new_x_max, y_min],
+                [new_x_max, y_max],
+                [new_x_min, y_max]
+            ])
+        
+            vertices.append(expanded_points.flatten())
             labels.append(1)
         vertices, labels = np.array(vertices, dtype=np.float32), np.array(labels, dtype=np.int64)
 
