@@ -345,7 +345,7 @@ class SceneTextDataset(Dataset):
                  normalize=True,
                  validation =False): # validation 파라미터 추가 
         # 지원하는 언어 목록 및 기본 설정 초기화 
-        self._lang_list = ['chinese', 'japanese', 'thai', 'vietnamese', 'synth']
+        self._lang_list = ['chinese', 'japanese', 'thai', 'vietnamese']
         self.root_dir = root_dir
         self.split = split
         total_anno = dict(images=dict())
@@ -382,8 +382,8 @@ class SceneTextDataset(Dataset):
             lang = 'thai'
         elif lang_indicator == 'vi':
             lang = 'vietnamese'
-        elif lang_indicator == 'synthetic':
-            lang = 'synth'
+        # elif lang_indicator == 'synthetic':
+        #     lang = 'synth'
         else:
             raise ValueError
         return osp.join(self.root_dir, f'{lang}_receipt', 'img', 'train')
