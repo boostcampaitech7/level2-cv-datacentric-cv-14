@@ -1,7 +1,7 @@
 import os.path as osp
 import math
 import json
-from PIL import Image
+from PIL import Image, ExifTags
 
 import torch
 import numpy as np
@@ -382,9 +382,12 @@ class SceneTextDataset(Dataset):
             lang = 'thai'
         elif lang_indicator == 'vi':
             lang = 'vietnamese'
+        # elif lang_indicator == 'synthetic':
+        #     lang = 'synth'
         else:
             raise ValueError
         return osp.join(self.root_dir, f'{lang}_receipt', 'img', 'train')
+    
     def __len__(self):
         # 전체 이미지 파일 수 반환 
         return len(self.image_fnames)
@@ -434,7 +437,7 @@ class SceneTextDataset(Dataset):
         else :
             image, vertices = resize_img(image, vertices, self.image_size)
             image, vertices = adjust_height(image, vertices)
-            image, vertices = rotate_img(image, vertices)
+            # image, vertices = rotate_img(image, vertices)
             image, vertices = crop_img(image, vertices, labels, self.crop_size)
 
             if image.mode != 'RGB':
@@ -455,3 +458,209 @@ class SceneTextDataset(Dataset):
         roi_mask = generate_roi_mask(image, vertices, labels)
 
         return image, word_bboxes, roi_mask
+
+class CustomTrainDataset(Dataset):
+    def __init__(self, root_dir,
+                 split='train',
+                 image_size=2048,
+                 crop_size=1024,
+                 ignore_under_threshold=10,
+                 drop_under_threshold=1,
+                 transform=None):
+
+        # 지원하는 언어 목록 및 기본 설정 초기화 
+        self._lang_list = ['chinese', 'japanese', 'thai', 'vietnamese']
+        self.root_dir = root_dir
+        total_anno = dict(images=dict())
+        
+        # 각 언어별로 데이터 로드하기 
+        for nation in self._lang_list:
+            with open(osp.join(root_dir, '{}_receipt/ufo/{}.json'.format(nation, split)), 'r', encoding='utf-8') as f:
+                anno = json.load(f)
+            # 모든 언어 데이터를 합쳐 하나로 저장 
+            for im in anno['images']:
+                total_anno['images'][im] = anno['images'][im]
+
+        # 전체 데이터와 이미지 파일 이름 저장 
+        self.anno = total_anno
+        self.image_fnames = sorted(self.anno['images'].keys())
+
+        # 작은 영역 필터링을 위한 기준값 
+        self.drop_under_threshold = drop_under_threshold
+        self.ignore_under_threshold = ignore_under_threshold
+
+        self.image_size = image_size
+        self.crop_size = crop_size
+
+        # Transform 설정
+        # 입력 augmentation으로 pipeline 구성
+        transform = transform if transform is not None else [A.LongestMaxSize(image_size)]
+        
+        self.transform = A.Compose(transform,
+                                   keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
+        self.normalize = A.Compose(A.Normalize())
+
+    def _infer_dir(self, fname):
+        # 파일 이름을 통해 언어 경로를 추정하여 반환 
+        lang_indicator = fname.split('.')[1]
+        if lang_indicator == 'zh':
+            lang = 'chinese'
+        elif lang_indicator == 'ja':
+            lang = 'japanese'
+        elif lang_indicator == 'th':
+            lang = 'thai'
+        elif lang_indicator == 'vi':
+            lang = 'vietnamese'
+        else:
+            raise ValueError
+        return osp.join(self.root_dir, f'{lang}_receipt', 'img', 'train')
+    
+    def __len__(self):
+        # 전체 이미지 파일 수 반환 
+        return len(self.image_fnames)
+
+    def __getitem__(self, idx):
+        # 1. 이미지 파일 경로와 이름 가져오기 
+        image_fname = self.image_fnames[idx]
+        image_fpath = osp.join(self._infer_dir(image_fname), image_fname)
+        
+        # 2. 텍스트 영역의 점 좌표(vertices)와 레이블(유효 여부) 수집
+        vertices, labels = [], []
+        for word_info in self.anno['images'][image_fname]['words'].values():
+            num_pts = np.array(word_info['points']).shape[0]
+            if num_pts > 4:
+                continue
+            
+            # 절취선 제거
+            if word_info['transcription'] == "":
+                continue
+
+            # 기존의 bbox 너비 늘리기
+            points = np.array(word_info['points'])
+
+            x_coords = points[:, 0]
+            y_coords = points[:, 1]
+
+            x_min, x_max = x_coords.min(), x_coords.max()
+            y_min, y_max = y_coords.min(), y_coords.max()
+
+            bbox_width = x_max - x_min
+            new_x_min = x_min - (bbox_width * 0.1)
+            new_x_max = x_max + (bbox_width * 0.1)
+
+            expanded_points = np.array([
+                [new_x_min, y_min],
+                [new_x_max, y_min],
+                [new_x_max, y_max],
+                [new_x_min, y_max]
+            ])
+
+            vertices.append(expanded_points.flatten())
+            labels.append(1) # 1은 유효 텍스트로 표시함
+        vertices, labels = np.array(vertices, dtype=np.float32), np.array(labels, dtype=np.int64)
+
+        # 3. 지정한 기준값을 통해 텍스트 영역 필터링 
+        vertices, labels = filter_vertices(
+            vertices,
+            labels,
+            ignore_under=self.ignore_under_threshold,
+            drop_under=self.drop_under_threshold
+        )
+
+        # 4. 이미지 파일 열기 
+        image = Image.open(image_fpath)
+
+        # 돌아간 이미지 정상화
+        try:  # 회전된 이미지만 처리
+            for orientation in ExifTags.TAGS.keys():
+                if ExifTags.TAGS[orientation] == 'Orientation':
+                    break
+            exif = image._getexif()
+            if exif is not None and orientation in exif:
+                if exif[orientation] == 3:
+                    image= image.rotate(180, expand=True)
+                elif exif[orientation] == 6:
+                    image = image.rotate(270, expand=True)
+                elif exif[orientation] == 8:
+                    image = image.rotate(90, expand=True)
+        except (AttributeError, KeyError, IndexError):
+            pass
+
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        image = np.array(image)
+
+        # 이미지 변환 적용 
+        image, vertices = self.transform(image=image, 
+                               keypoints=[tuple(point) for point in vertices.reshape(-1, 2)]).values()
+
+        # crop 적용
+        image, vertices = crop_img(Image.fromarray(image), np.array(vertices, dtype=np.float32).reshape(-1, 8), labels, self.crop_size)
+
+        image = np.array(image)
+        image = self.normalize(image=image)['image']
+
+        word_bboxes = np.reshape(vertices, (-1, 4, 2))
+        roi_mask = generate_roi_mask(image, vertices, labels)
+
+        return image, word_bboxes, roi_mask
+
+class CustomValidationDataset(Dataset):
+    def __init__(self, 
+                 root_dir,
+                 split='val_fold_1'):
+        
+        # 지원하는 언어 목록 및 기본 설정 초기화 
+        self._lang_list = ['chinese', 'japanese', 'thai', 'vietnamese']
+        self.root_dir = root_dir
+        total_anno = dict(images=dict())
+        
+        # 각 언어별로 데이터 로드하기 
+        for nation in self._lang_list:
+            with open(osp.join(root_dir, '{}_receipt/ufo/{}.json'.format(nation, split)), 'r', encoding='utf-8') as f:
+                anno = json.load(f)
+            # 모든 언어 데이터를 합쳐 하나로 저장 
+            for im in anno['images']:
+                total_anno['images'][im] = anno['images'][im]
+
+        # 전체 데이터와 이미지 파일 이름 저장 
+        self.anno = total_anno
+        self.image_fnames = sorted(self.anno['images'].keys())
+
+        gt_bboxes = dict()
+
+        for img in self.image_fnames:
+            gt_bboxes[img] = []
+            for idx in self.anno['images'][img]['words'].keys():
+                gt_bboxes[img].append(self.anno['images'][img]['words'][idx]['points'])
+
+        self.gt_bboxes = gt_bboxes
+
+    def _infer_dir(self, fname):
+        # 파일 이름을 통해 언어 경로를 추정하여 반환 
+        lang_indicator = fname.split('.')[1]
+        if lang_indicator == 'zh':
+            lang = 'chinese'
+        elif lang_indicator == 'ja':
+            lang = 'japanese'
+        elif lang_indicator == 'th':
+            lang = 'thai'
+        elif lang_indicator == 'vi':
+            lang = 'vietnamese'
+        else:
+            raise ValueError
+        
+        return osp.join(self.root_dir, f'{lang}_receipt', 'img', 'train')
+    
+    def __len__(self):
+        # 전체 이미지 파일 수 반환 
+        return len(self.image_fnames)
+
+    def __getitem__(self, idx):
+        # 이미지 이름과 경로
+        image_fname = self.image_fnames[idx]
+        image_fpath = osp.join(self._infer_dir(image_fname), image_fname)
+
+        # BGR -> RGB
+        img = cv2.imread(image_fpath)[:, :, ::-1]
+        return image_fname, self.gt_bboxes[image_fname], img
