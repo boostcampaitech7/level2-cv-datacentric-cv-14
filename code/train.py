@@ -214,6 +214,7 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
 
         # 학습률 스케줄러 업데이트 
         scheduler.step()    
+    return best_f1_score, best_f1_score_epoch
 
 
 def main(args):
@@ -229,7 +230,8 @@ def main(args):
                                          for aug, params in args_dict['transform'].items()]
 
     args = Namespace(**training_args)
-    do_training(**args.__dict__)
+    best_f1_score, best_f1_score_epoch = do_training(**args.__dict__)
+    return best_f1_score, best_f1_score_epoch
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -239,5 +241,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     with open(args.config, 'r') as f:
         cfg = OmegaConf.load(f)
-    main(cfg)
-    Gsheet_param(cfg)
+    best_f1_score, best_f1_score_epoch = main(cfg)
+    Gsheet_param(cfg, best_f1_score, best_f1_score_epoch)
