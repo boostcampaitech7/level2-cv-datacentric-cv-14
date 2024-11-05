@@ -24,3 +24,6 @@ __pycache__
 
 # wandb
 wandb/
+
+# 결과 파일 제외
+*.csv
