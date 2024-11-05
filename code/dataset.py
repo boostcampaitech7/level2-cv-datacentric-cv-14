@@ -382,6 +382,8 @@ class SceneTextDataset(Dataset):
             lang = 'thai'
         elif lang_indicator == 'vi':
             lang = 'vietnamese'
+        # elif lang_indicator == 'synthetic':
+        #     lang = 'synth'
         else:
             raise ValueError
         return osp.join(self.root_dir, f'{lang}_receipt', 'img', 'train')
@@ -435,7 +437,7 @@ class SceneTextDataset(Dataset):
         else :
             image, vertices = resize_img(image, vertices, self.image_size)
             image, vertices = adjust_height(image, vertices)
-            image, vertices = rotate_img(image, vertices)
+            # image, vertices = rotate_img(image, vertices)
             image, vertices = crop_img(image, vertices, labels, self.crop_size)
 
             if image.mode != 'RGB':
@@ -523,6 +525,8 @@ class CustomTrainDataset(Dataset):
         for word_info in self.anno['images'][image_fname]['words'].values():
             num_pts = np.array(word_info['points']).shape[0]
             if num_pts > 4:
+                continue
+            if word_info['transciption'] == "":
                 continue
             vertices.append(np.array(word_info['points']).flatten())
             labels.append(1) # 1은 유효 텍스트로 표시함
