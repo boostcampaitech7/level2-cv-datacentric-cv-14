@@ -1,5 +1,5 @@
 data_dir: /data/ephemeral/home/data
-model_dir: ./trained_models/Augmentation/rotate_perspective
+model_dir: ./trained_models/Augmentation/remove_dotted_line
 device: cuda
 # only for train #
 
@@ -21,7 +21,7 @@ transform:
   # SmallestMaxSize:
   #   max_size: *input_size
   Rotate:
-    limit: 15
+    limit: 10 
     border_mode: 1
   Perspective:  
     fit_output: True
@@ -31,7 +31,7 @@ transform:
 #------------------------------------------------------------#
 # save parameters for Gsheet & Wandb #
 experiment_name: Augmentation
-experiment_detail: Add Rotate and Perspective
+experiment_detail: Remove dotted line and Apply perspective
 
 #------------------------------------------------------------#
 # train, validation json file
