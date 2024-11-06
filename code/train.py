@@ -15,7 +15,7 @@ from torch.optim import lr_scheduler
 from tqdm import tqdm
 
 from east_dataset import EASTDataset
-from dataset import SceneTextDataset, CustomTrainDataset, CustomValidationDataset
+from dataset import CustomTrainDataset, CustomValidationDataset
 from deteval import calc_deteval_metrics
 from model import EAST
 from detect import detect
