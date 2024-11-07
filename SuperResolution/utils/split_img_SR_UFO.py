@@ -25,7 +25,7 @@ def process_ufo_for_split_images(ufo_path, input_image_dir, output_image_dir, ou
         width = img_data["img_w"]
         height = img_data["img_h"]
         
-        # 크기 체크 (4000 이상 제외)
+        # 크기 체크 (5000 이상 제외)
         if height <= 2000:
             scale = 4
         elif height <= 5000:
@@ -52,6 +52,7 @@ def process_ufo_for_split_images(ufo_path, input_image_dir, output_image_dir, ou
             img = img.transpose(Image.ROTATE_270)
 
         img_data["img_w"] = img_data["img_w"] * scale
+        img_data["img_h"] = img_data["img_h"] * scale
 
 
 
