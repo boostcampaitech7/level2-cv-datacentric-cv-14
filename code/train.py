@@ -175,7 +175,7 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
                         best_f1_score = val_log_dict['Valid F1 Score']
                         best_f1_score_epoch = epoch
                         
-                        save_path = osp.join(model_dir, f"best_f1_score_{best_f1_score:.4f}_{best_f1_score_epoch}epoch_.pth")
+                        save_path = osp.join(model_dir, f"best_f1_score_{best_f1_score:.4f}_{best_f1_score_epoch}epoch.pth")
                         counter = 0
                     else:
                         counter += 1
