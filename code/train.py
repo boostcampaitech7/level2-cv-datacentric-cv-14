@@ -30,22 +30,13 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
                 learning_rate, max_epoch, save_interval, validation, train_ann, val_ann, custom_transform=None):
     
     # 1. 훈련 데이터셋 로드 및 전처리 
-    train_dataset = SceneTextDataset(
+    train_dataset = CustomTrainDataset(
         data_dir,
         split=train_ann,
         image_size=image_size,
         crop_size=input_size,
-        validation=False
-    )
-
-    ''' custom dataset 사용시 SceneTextDataset 대신 사용 '''
-    '''
-    train_dataset = CustomTrainDataset(
-        data_dir,
-        split=train_ann,
         transform=custom_transform
     )
-    '''
     
     train_dataset = EASTDataset(train_dataset)
     train_num_batches = math.ceil(len(train_dataset) / batch_size)
@@ -89,11 +80,12 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
     model.to(device)
     
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[max_epoch // 2], gamma=0.1)
+    scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=max_epoch)
      
     # Early stopping 설정 변수 
-    counter = 0
-    best_f1_score = np.inf
+    counter = 10
+    best_f1_score = 0
+    best_f1_score_epoch = 0
 
     # model 저장 path
     before_path = ""
@@ -148,7 +140,7 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
             timedelta(seconds=train_end*(max_epoch - epoch))))
             
         #---------------------validation---------------------#    
-        if epoch >= 100 and epoch % save_interval == 0:
+        if epoch >= 75 and epoch % save_interval == 0:
             if validation:
                 model.eval()
                 with torch.no_grad():
@@ -222,6 +214,7 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
 
         # 학습률 스케줄러 업데이트 
         scheduler.step()    
+    return best_f1_score, best_f1_score_epoch
 
 
 def main(args):
@@ -233,11 +226,12 @@ def main(args):
     }
 
     # custom dataset 사용시 주석 해제
-    # training_args['custom_transform'] = [getattr(A, aug)(**params) 
-    #                                      for aug, params in args_dict['transform'].items()]
+    training_args['custom_transform'] = [getattr(A, aug)(**params) 
+                                         for aug, params in args_dict['transform'].items()]
 
     args = Namespace(**training_args)
-    do_training(**args.__dict__)
+    best_f1_score, best_f1_score_epoch = do_training(**args.__dict__)
+    return best_f1_score, best_f1_score_epoch
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -247,5 +241,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     with open(args.config, 'r') as f:
         cfg = OmegaConf.load(f)
-    main(cfg)
-    Gsheet_param(cfg)
+    best_f1_score, best_f1_score_epoch = main(cfg)
+    Gsheet_param(cfg, best_f1_score, best_f1_score_epoch)
