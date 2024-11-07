@@ -1,0 +1,31 @@
+data_dir: /data/ephemeral/home/data
+model_dir: ./trained_models/final_experiment/fold_N
+device: cuda
+# only for train #
+
+# save parameters for Gsheet & Wandb #
+experiment_name: Final Experiment
+experiment_detail: Fold N Extract
+
+# train, validation json file
+validation: True
+train_ann : train_fold_N
+val_ann : val_fold_N
+
+image_size: &image_size 2048
+input_size: &input_size 1024
+
+batch_size: 8
+num_workers: 8
+
+learning_rate: 1e-3
+max_epoch: 150
+save_interval: 1
+
+# Custom Dataset 사용시 주석 해제
+transform: 
+  LongestMaxSize:  # albumentations의 함수명 정확하게 작성
+    max_size: *image_size # 해당 함수의 인자 작성
+  Perspective:  
+    fit_output: True
+    pad_mode: 1
