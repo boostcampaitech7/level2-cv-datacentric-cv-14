@@ -1,11 +1,13 @@
-import json
 import os
+import json
+import argparse
 
-def merge_train_and_pseudo(data_dir, countries):
+def merge_train_and_pseudo(args, countries):
+    # train과 pseudo json파일을 합치는 함수
     for country_code in countries:
-        train_json_path = os.path.join(data_dir, country_code, "ufo", "train_fold_1.json")
-        pseudo_json_path = os.path.join(data_dir, country_code, "ufo", "pseudo_train.json")
-        merged_json_path = os.path.join(data_dir, country_code, "ufo", "merged_train.json")
+        train_json_path = os.path.join(args.data_dir, country_code, "ufo", args.train)
+        pseudo_json_path = os.path.join(args.data_dir, country_code, "ufo", args.pseudo)
+        merged_json_path = os.path.join(args.data_dir, country_code, "ufo", "merged_train.json")
         
         # train.json 파일 로드
         with open(train_json_path, 'r', encoding='utf-8') as f:
@@ -33,6 +35,12 @@ def merge_train_and_pseudo(data_dir, countries):
         print(f"Merged train and pseudo-labeled data saved to {merged_json_path} for {country_code}")
 
 # 사용 예시
-data_dir = "/data/ephemeral/home/data"
 countries = ["chinese_receipt", "thai_receipt", "japanese_receipt", "vietnamese_receipt"]  # 국가별 폴더명 리스트
-merge_train_and_pseudo(data_dir, countries)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--data_dir", default="/data/ephemeral/home/data", help="데이터가 존재하는 root 폴더")
+parser.add_argument("--train", default="train.json", help="train에 사용되는 json 파일명")
+parser.add_argument("--pseudo", default="pseudo_train.json", help="pseudo labeling을 통해서 나온 json 파일명")
+args = parser.parse_args()
+
+merge_train_and_pseudo(args, countries)
