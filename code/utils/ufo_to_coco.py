@@ -89,12 +89,11 @@ def convert_ufo_to_coco(ufo_dir, img_dir, output_path):
 
 # 모든 언어 및 split에 대해 변환 수행
 LANGUAGE_LIST = ['chinese', 'japanese', 'thai', 'vietnamese']
-SPLIT_LIST = ['train', 'test'] 
 
 for lang in LANGUAGE_LIST:
-    ufo_path = f"../../data/{lang}_receipt/ufo/train.json"
-    img_path = f"../../data/{lang}_receipt/img/"
-    output_path = f"../../data/{lang}_receipt/coco/train.json"
+    ufo_path = f"/data/ephemeral/home/data/{lang}_receipt/ufo/train.json"
+    img_path = f"/data/ephemeral/home/data/{lang}_receipt/img/"
+    output_path = f"/data/ephemeral/home/data/{lang}_receipt/coco/train.json"
     
     # output 디렉토리가 없으면 생성
     os.makedirs(os.path.dirname(output_path), exist_ok=True)

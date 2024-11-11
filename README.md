@@ -35,12 +35,12 @@ OCR은 글자 검출 (text detection), 글자 인식 (text recognition), 정렬�
 
 <table align="center">
     <tr align="center">
-        <td><img src="https://github.com/user-attachments/assets/3560856a-8cac-4079-8494-4f1bf13d0eb5" width="140"></td>
-        <td><img src="https://github.com/user-attachments/assets/3560856a-8cac-4079-8494-4f1bf13d0eb5" width="140"></td>
-        <td><img src="https://github.com/user-attachments/assets/3560856a-8cac-4079-8494-4f1bf13d0eb5" width="140"></td>
-        <td><img src="https://github.com/user-attachments/assets/3560856a-8cac-4079-8494-4f1bf13d0eb5" width="140"></td>
-        <td><img src="https://github.com/user-attachments/assets/fdce3bf1-4dd2-44c9-b4db-1599c4d3826d" width="140" height="140"></td>
-        <td><img src="https://github.com/user-attachments/assets/3560856a-8cac-4079-8494-4f1bf13d0eb5" width="140"></td>
+        <td><img src="https://github.com/user-attachments/assets/969d8f90-50b5-40bd-a196-2bbfdd49627f" width="140" height="140"></td>
+        <td><img src="https://github.com/user-attachments/assets/1d97183e-dd29-4be9-a52c-5f47e48c7eaa" width="140" height="140"></td>
+        <td><img src="https://github.com/user-attachments/assets/b76d9189-515e-4cd0-9130-c70b2a8bcd13" width="140" height="140"></td>
+        <td><img src="https://github.com/user-attachments/assets/16c15d86-5692-449f-a1f8-6be93e524aae" width="140" height="140"></td>
+        <td><img src="https://github.com/user-attachments/assets/6883c516-ebf8-4868-8509-5841bf139808" width="140" height="140"></td>
+        <td><img src="https://github.com/user-attachments/assets/482d51d6-e2f2-40de-baba-1f39f9bb93ff" width="140" height="140"></td>
     </tr>
     <tr align="center">
         <td><a href="https://github.com/kimgeonsu" target="_blank">김건수</a></td>
@@ -61,6 +61,26 @@ OCR은 글자 검출 (text detection), 글자 인식 (text recognition), 정렬�
 </table>
 
 <br/>
+
+## 🏆 Project Result
+
+**_<p align=center>Public Leader Board</p>_**
+<img src="https://github.com/user-attachments/assets/3110028c-9b59-472c-bb96-266f5e283e34" alt="Public Leader Board" >
+
+<br>
+
+**_<p align=center>Private Leader Board</p>_**
+<img src="https://github.com/user-attachments/assets/c0981cec-4b8b-4344-a202-5e8fe6e42d9e" alt="Private Leader Board" >
+
+<br>
+
+## 🔗 Reference
+
+### [📎 Data Centric Wrap-UP Report](https://drive.google.com/file/d/1A8x_xw0erjPVjA3lfnGIDZlsQig6yQaC/view?usp=sharing)
+
+### [📎 Data Centric Notion](https://violet-join-36b.notion.site/Multilingual-Receipt-OCR-a173306ffcb94da2af29710367a6958b?pvs=4)
+
+<br>
 
 ## Commit Convention
 

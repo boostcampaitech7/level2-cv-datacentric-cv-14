@@ -1,7 +1,9 @@
 import os
 import shutil
+import argparse
 
 def merge_images(data_dir, countries):
+    # train과 test 이미지를 복사
     for country_code in countries:
         # 각 나라의 이미지 폴더 경로 설정
         train_dir = os.path.join(data_dir, country_code, "img", "train")
@@ -30,6 +32,10 @@ def merge_images(data_dir, countries):
         print(f"Images from train and test copied to {merge_dir} for {country_code}")
 
 # 사용 예시
-data_dir = "/data/ephemeral/home/data"
 countries = ["chinese_receipt", "thai_receipt", "japanese_receipt", "vietnamese_receipt"]  # 국가별 폴더명 리스트
-merge_images(data_dir, countries)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--data_dir", default="/data/ephemeral/home/data", help="데이터가 존재하는 root 폴더")
+args = parser.parse_args()
+
+merge_images(args.data_dir, countries)
